@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>Tarjetas DE—EN</title>
+<style>
+  :root{
+    --bg:#0b1324;--card:#111a30;--muted:#8aa0c6;--accent:#5dd0ff;--ok:#8ef6a0;
+    --radius:16px;--gap:12px;--pad:14px;--maxw:560px;
+  }
+  html,body{margin:0;background:#0b1324;color:#e8f0ff;font-family:system-ui,Segoe UI,Roboto,Inter,Arial,sans-serif}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:12px}
+  /* Cards */
+  .panel{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:var(--radius);padding:var(--pad);box-shadow:0 8px 24px rgba(0,0,0,.25);margin-bottom:var(--gap)}
+  /* Card display */
+  .card{background:var(--card);border:1px solid rgba(255,255,255,.1);border-radius:var(--radius);padding:16px}
+  .meta{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;font-size:12px;color:var(--muted)}
+  .tag{font-weight:600;background:var(--accent);color:#061121;border-radius:999px;padding:4px 10px;max-width:70%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .pill{padding:4px 8px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08)}
+  .pair{display:grid;grid-template-columns:1fr;gap:10px}
+  .label{font-size:12px;color:var(--muted);margin-bottom:6px}
+  .de,.en{background:#0c1427;border:1px solid rgba(255,255,255,.08);padding:12px;border-radius:12px;min-height:62px;white-space:pre-wrap;line-height:1.35}
+  .en.hidden{filter:blur(10px)}
+  /* Controls */
+  .controls{display:grid;grid-template-columns:1fr 1fr;gap:var(--gap)}
+  .controls-3{grid-template-columns:1fr 1fr 1fr}
+  .row{display:grid;grid-template-columns:1fr;gap:var(--gap)}
+  button,select,input[type="file"]{
+    width:100%;background:#102747;border:1px solid rgba(255,255,255,.16);color:#fff;border-radius:12px;
+    padding:12px 10px;font-size:15px;touch-action:manipulation
+  }
+  button{background:linear-gradient(180deg,#1a3556,#102747);cursor:pointer;transition:.15s transform,.15s filter}
+  button:active{transform:scale(.98)}
+  button.secondary{background:#0c1427}
+  .tiny{font-size:12px;color:var(--muted);margin-top:6px}
+  #statusMsg{margin-top:6px;font-size:12px;color:var(--muted);min-height:16px}
+  .ok{color:var(--ok)} .err{color:#ffb3b3}
+  @media (min-width:600px){
+    .pair{grid-template-columns:1fr 1fr}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Tarjeta -->
+  <section class="panel">
+    <div class="card">
+      <div class="meta">
+        <span id="topicTag" class="tag">—</span>
+        <span class="pill" id="countMeta">0/0</span>
+      </div>
+      <div class="pair">
+        <div>
+          <div class="label">Alemán</div>
+          <div id="deBox" class="de">Cargando…</div>
+        </div>
+        <div>
+          <div class="label">Inglés</div>
+          <div id="enBox" class="en hidden">—</div>
+        </div>
+      </div>
+      <div id="statusMsg"></div>
+    </div>
+  </section>
+
+  <!-- Acciones rápidas (pensadas para móvil) -->
+  <section class="panel">
+    <div class="controls controls-3">
+      <button id="btnRandomPair">Frase al azar</button>
+      <button id="btnToggleEN" class="secondary">Traducción</button>
+      <button id="btnCopyDE" class="secondary">Copiar DE</button>
+    </div>
+    <label class="tiny"><input id="noRepeats" type="checkbox" checked /> Sin repetir</label>
+  </section>
+
+  <!-- Datos y filtros -->
+  <section class="panel">
+    <div class="row" style="margin-bottom:6px;">
+      <input id="tsvFile" type="file" accept=".tsv,.txt,text/tab-separated-values" />
+      <div class="controls">
+        <select id="topicSelect" title="Elige un tema"></select>
+        <button id="btnRandomTopic" class="secondary">Tema al azar</button>
+      </div>
+    </div>
+    <div class="controls">
+      <button id="loadDefault" class="secondary" title="Intentar cargar data.tsv">Cargar TSV por nombre</button>
+      <button id="resetSeen" class="secondary" title="Reinicia el contador de vistos">Reiniciar vistos</button>
+    </div>
+  </section>
+
+</div>
+
+<script>
+const DEFAULT_TSV = "data.tsv";
+
+/* ==== Helpers ==== */
+const norm = s => (s||"").replace(/^\uFEFF/, '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+const headerAliases = {
+  topic_es: ['topic','tema','kategorie','category','capitulo','capítulo','unidad','unit','kapitel','tema es','topic es','spanish topic'],
+  topic_en: ['topic_en','tema_en','topic english','english topic','tema ingles','tema inglés','topic en','en topic'],
+  de:       ['de','deu','deutsch','german','alemán','aleman','frase','expresion','expresión','satz','ausdruck'],
+  en:       ['en','eng','english','ingles','inglés','translation','traduccion','traducción','uebersetzung','übersetzung']
+};
+function guessDelimiter(line){
+  if (line.includes('\t')) return '\t';
+  if (line.includes(';')) return ';';
+  if (line.includes(',')) return ',';
+  return '\t';
+}
+function sniffColumns(headers){
+  const H = headers.map(h => norm(h));
+  const idx = { topic_es:-1, topic_en:-1, de:-1, en:-1 };
+  for (let i=0;i<H.length;i++){
+    if (headerAliases.de.includes(H[i])) idx.de = i;
+    if (headerAliases.en.includes(H[i])) idx.en = i;
+    if (headerAliases.topic_es.includes(H[i])) idx.topic_es = i;
+    if (headerAliases.topic_en.includes(H[i])) idx.topic_en = i;
+  }
+  if (idx.de === -1 || idx.en === -1){
+    throw new Error("No se detectaron columnas de Alemán (3ª) e Inglés (4ª). Usa el orden fijo: 1) Tema ES, 2) Tema EN, 3) Alemán, 4) Inglés; o añade encabezados.");
+  }
+  return idx;
+}
+function parseTSV(raw){
+  let text = (raw||"").replace(/^\uFEFF/,'');
+  const lines = text.split(/\r?\n/).filter(l => l.trim().length>0);
+  if (!lines.length) throw new Error("TSV vacío.");
+  const delim = guessDelimiter(lines[0]);
+  const first = lines[0].split(delim);
+  const aliasSet = new Set([...headerAliases.topic_es, ...headerAliases.topic_en, ...headerAliases.de, ...headerAliases.en]);
+  const looksLikeHeader = first.some(v => aliasSet.has(norm(v)));
+  let map, startRow;
+  if (looksLikeHeader){ map = sniffColumns(first); startRow = 1; }
+  else {
+    if (first.length < 4) throw new Error(`Se esperaban al menos 4 columnas, encontradas ${first.length}. Verifica que sea TSV (tabs).`);
+    map = { topic_es:0, topic_en:1, de:2, en:3 }; startRow = 0;
+  }
+  const data = [];
+  for (let r=startRow; r<lines.length; r++){
+    const cols = lines[r].split(delim);
+    const rec = {
+      topic_es: (cols[map.topic_es] ?? '').trim() || 'General',
+      topic_en: map.topic_en>-1 ? (cols[map.topic_en] ?? '').trim() : '',
+      de: (cols[map.de] ?? '').trim(),
+      en: (cols[map.en] ?? '').trim(),
+      _row: r - startRow
+    };
+    if ((rec.de+rec.en+rec.topic_es).trim().length === 0) continue;
+    data.push(rec);
+  }
+  if (!data.length) throw new Error("No quedaron filas válidas.");
+  return data;
+}
+function isSubEntry(str){ return /^(\u2022|-|–|—|\s{2,}|\(\d+\)|\d+\.)\s+/.test(str||''); }
+
+/* ==== Estado ==== */
+let ALL = [];
+let BY_TOPIC = new Map();
+let USED = new Set();
+let USED_BY_TOPIC = new Map();
+let currentTopic = '__ALL__';
+
+/* ==== UI ==== */
+const el = id => document.getElementById(id);
+const tsvFile = el('tsvFile'), topicSelect = el('topicSelect'), btnRandomTopic=el('btnRandomTopic');
+const btnRandomPair=el('btnRandomPair'), btnToggleEN=el('btnToggleEN'), btnCopyDE=el('btnCopyDE'), noRepeats=el('noRepeats');
+const topicTag=el('topicTag'), deBox=el('deBox'), enBox=el('enBox'), statusMsg=el('statusMsg'), countMeta=el('countMeta');
+const loadDefault=el('loadDefault'), resetSeen=el('resetSeen');
+
+/* ==== Render ==== */
+function fillTopics(){
+  topicSelect.innerHTML='';
+  const topics = Array.from(BY_TOPIC.keys()).sort((a,b)=>a.localeCompare(b,'es'));
+  const optAll = document.createElement('option'); optAll.value='__ALL__'; optAll.textContent=`Todas (${ALL.length})`;
+  topicSelect.appendChild(optAll);
+  for (const t of topics){
+    const opt = document.createElement('option');
+    opt.value = t || 'General';
+    opt.textContent = `${t || 'General'} (${BY_TOPIC.get(t).length})`;
+    topicSelect.appendChild(opt);
+  }
+  topicSelect.value = '__ALL__';
+  currentTopic = '__ALL__';
+  updateMetaCount();
+}
+function updateMetaCount(){
+  const pool = getPool(currentTopic);
+  const usedSet = getUsedSet(currentTopic);
+  countMeta.textContent = `${Math.min(usedSet.size,pool.length)}/${pool.length}`;
+}
+function showPair(rec){
+  const tag = rec.topic_en ? `${rec.topic_es} / ${rec.topic_en}` : rec.topic_es;
+  topicTag.textContent = tag || 'General';
+  deBox.textContent = rec.de || '—';
+  enBox.textContent = rec.en || '—';
+  deBox.style.borderLeft = isSubEntry(rec.de) ? '4px solid rgba(255,255,255,.15)' : '1px solid rgba(255,255,255,.08)';
+  enBox.classList.add('hidden');
+  statusMsg.textContent = ''; // sin mensajes ruidosos por defecto
+}
+
+/* ==== Selección ==== */
+function getPool(topic){ return topic==='__ALL__' ? ALL : (BY_TOPIC.get(topic) || []); }
+function getUsedSet(topic){
+  if (topic==='__ALL__') return USED;
+  if (!USED_BY_TOPIC.has(topic)) USED_BY_TOPIC.set(topic,new Set());
+  return USED_BY_TOPIC.get(topic);
+}
+function pickRandom(topic){
+  const pool = getPool(topic);
+  if (!pool.length) throw new Error('No hay datos en este tema.');
+  const usedSet = getUsedSet(topic);
+  let candidates = pool;
+  if (noRepeats.checked){
+    const usedIds = new Set(Array.from(usedSet));
+    candidates = pool.filter(r => !usedIds.has(r._row));
+    if (!candidates.length){
+      usedSet.clear();
+      candidates = pool.slice();
+      statusMsg.textContent = 'Se reinició el ciclo sin repetir.';
+    }
+  }
+  const rec = candidates[Math.floor(Math.random()*candidates.length)];
+  if (noRepeats.checked){ usedSet.add(rec._row); USED.add(rec._row); }
+  updateMetaCount();
+  return rec;
+}
+
+/* ==== Carga ==== */
+async function loadTSVFromFile(file){
+  try{
+    const text = await file.text();
+    ingest(text);
+  }catch(e){
+    console.error(e);
+    statusMsg.innerHTML = `<span class="err">No pude leer el archivo: ${e.message}</span>`;
+  }
+}
+async function loadTSVFromURL(url){
+  if (location.protocol === 'file:'){
+    // Silencioso en local (sin mensajes extra). El usuario puede usar "Cargar archivo".
+    return;
+  }
+  try{
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const text = await res.text();
+    ingest(text);
+  }catch(e){
+    console.error(e);
+    statusMsg.innerHTML = `<span class="err">No se pudo cargar ${url}.</span>`;
+  }
+}
+function ingest(text){
+  try{
+    ALL = parseTSV(text);
+    BY_TOPIC = new Map();
+    for (const r of ALL){
+      const key = (r.topic_es && r.topic_es.trim()) ? r.topic_es.trim() : 'General';
+      if (!BY_TOPIC.has(key)) BY_TOPIC.set(key, []);
+      BY_TOPIC.get(key).push(r);
+    }
+    USED = new Set(); USED_BY_TOPIC = new Map();
+    fillTopics();
+    showPair(ALL[0]);
+  }catch(e){
+    console.error(e);
+    statusMsg.innerHTML = `<span class="err">TSV inválido: ${e.message}</span>`;
+    deBox.textContent = '—'; enBox.textContent = '—';
+  }
+}
+
+/* ==== Eventos ==== */
+el('tsvFile').addEventListener('change', (ev)=>{
+  const f = ev.target.files?.[0];
+  if (f) loadTSVFromFile(f);
+});
+loadDefault.addEventListener('click', ()=> loadTSVFromURL(DEFAULT_TSV));
+topicSelect.addEventListener('change', ()=>{
+  currentTopic = topicSelect.value;
+  updateMetaCount();
+  const pool = getPool(currentTopic);
+  if (pool.length) showPair(pool[0]);
+  else { deBox.textContent='—'; enBox.textContent='—'; statusMsg.textContent='Tema vacío.'; }
+});
+btnRandomTopic.addEventListener('click', ()=>{
+  const topics = Array.from(BY_TOPIC.keys());
+  if (!topics.length){ statusMsg.textContent = 'No hay temas cargados.'; return; }
+  const t = topics[Math.floor(Math.random()*topics.length)];
+  topicSelect.value = t; currentTopic = t;
+  updateMetaCount();
+  showPair(pickRandom(t));
+});
+btnRandomPair.addEventListener('click', ()=>{
+  if (!ALL.length){ statusMsg.textContent = 'Carga un TSV primero.'; return; }
+  showPair(pickRandom(currentTopic));
+});
+btnToggleEN.addEventListener('click', ()=> enBox.classList.toggle('hidden'));
+btnCopyDE.addEventListener('click', async ()=>{
+  try{
+    await navigator.clipboard.writeText(deBox.textContent || '');
+    statusMsg.innerHTML = '<span class="ok">Alemán copiado ✓</span>';
+  }catch{ statusMsg.textContent = 'No pude copiar (permiso del navegador).'; }
+});
+resetSeen.addEventListener('click', ()=>{
+  USED.clear(); USED_BY_TOPIC.clear(); updateMetaCount();
+  statusMsg.innerHTML = '<span class="ok">Reiniciado</span>';
+});
+
+/* ==== Inicio ==== */
+document.addEventListener('DOMContentLoaded', ()=>{
+  // Intento silencioso (no muestra leyenda). En local no hace nada.
+  loadTSVFromURL(DEFAULT_TSV);
+});
+</script>
+</body>
+</html>

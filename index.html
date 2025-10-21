@@ -6,77 +6,108 @@
   <title>Vocabulary</title>
   <style>
     :root {
-      --bg: #0f172a; --card: #111827; --muted: #94a3b8; --fg: #e5e7eb;
-      --accent: #22c55e; --accent-press: #16a34a; --btn: #1f2937; --btn-active: #111827;
-      --shadow: 0 10px 25px rgba(0,0,0,.35);
+      --bg:#0f172a; --card:#111827; --muted:#94a3b8; --fg:#e5e7eb;
+      --accent:#22c55e; --accent-press:#16a34a; --btn:#1f2937; --btn-active:#111827;
+      --shadow:0 10px 25px rgba(0,0,0,.35);
     }
-    * { box-sizing: border-box; }
-    html, body { height: 100%; }
-    body {
-      margin: 0; background: radial-gradient(1200px 700px at 50% -100px, #1e293b 20%, var(--bg) 60%);
-      color: var(--fg); font: 16px/1.4 system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
-      display: grid; place-items: start center; padding: 12px;
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; background:radial-gradient(1200px 700px at 50% -100px,#1e293b 20%,var(--bg) 60%);
+      color:var(--fg); font:16px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Helvetica Neue,Arial;
+      display:grid; place-items:start center; padding:12px;
     }
-    .app { width: 100%; max-width: 720px; display: grid; gap: 12px; }
+    .app{width:100%; max-width:720px; display:grid; gap:12px;}
 
-    .controls {
-      display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 4px;
+    /* Controls */
+    .controls{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:4px;}
+    @media (min-width:640px){ .controls{ grid-template-columns:repeat(4,1fr); } }
+    .wide{grid-column:1 / -1;}
+    label.select-wrap{
+      display:grid; gap:6px; align-content:start;
+      background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(0,0,0,.25));
+      border:1px solid rgba(148,163,184,.25); border-radius:12px; padding:10px 12px; box-shadow:var(--shadow);
     }
-    @media (max-width: 420px) { .controls { grid-template-columns: 1fr 1fr; } .controls .wide { grid-column: 1 / -1; } }
-    button {
-      -webkit-tap-highlight-color: transparent; appearance: none; border: 1px solid #334155;
-      background: var(--btn); color: var(--fg); border-radius: 12px; padding: 12px 14px;
-      font-weight: 600; letter-spacing: .2px; box-shadow: var(--shadow); cursor: pointer;
-      transition: transform .06s ease, background .2s ease, border-color .2s ease;
-    }
-    button:active { transform: translateY(1px); }
-    .primary { background: var(--accent); border-color: var(--accent); color: #04110a; }
-    .primary:active { background: var(--accent-press); border-color: var(--accent-press); }
-    .toggle[aria-pressed="true"] { background: var(--btn-active); border-color: #475569; outline: 2px solid #334155; }
-
-    .card {
-      background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(0,0,0,.25));
-      border: 1px solid rgba(148,163,184,.25); border-radius: 16px; box-shadow: var(--shadow);
-      padding: 14px; display: grid; gap: 10px;
+    .label-sm{font-size:12px; text-transform:uppercase; color:var(--muted); letter-spacing:.12em;}
+    select{
+      appearance:none; background:var(--card); color:var(--fg);
+      border:1px solid #334155; border-radius:10px; padding:10px; width:100%;
+      font-weight:600;
     }
 
-    .topic { display: grid; gap: 6px; }
-    .topic-label {
-      font-size: 12px; text-transform: uppercase; color: var(--muted); letter-spacing: 0.12em;
+    button{
+      -webkit-tap-highlight-color:transparent; appearance:none; border:1px solid #334155;
+      background:var(--btn); color:var(--fg); border-radius:12px; padding:12px 14px;
+      font-weight:600; letter-spacing:.2px; box-shadow:var(--shadow); cursor:pointer;
+      transition:transform .06s ease, background .2s ease, border-color .2s ease;
     }
-    .topic-de {
-      font-size: clamp(20px, 6.2vw, 28px); line-height: 1.15; font-weight: 800;
-      word-break: break-word; overflow-wrap: anywhere; white-space: normal; margin: 0;
+    button:active{transform:translateY(1px)}
+    .primary{background:var(--accent); border-color:var(--accent); color:#04110a;}
+    .primary:active{background:var(--accent-press); border-color:var(--accent-press);}
+    .toggle[aria-pressed="true"]{background:var(--btn-active); border-color:#475569; outline:2px solid #334155;}
+
+    .progress{
+      display:flex; align-items:center; justify-content:center;
+      background:var(--card); border:1px solid rgba(148,163,184,.25); border-radius:12px;
+      padding:10px 12px; font-size:13px; color:#e2e8f0;
     }
-    .topic-en { font-size: 14px; color: var(--muted); margin: 0; display: none; }
 
-    .content { display: grid; gap: 8px; margin-top: 2px; }
-    .content-block { background: var(--card); border: 1px solid rgba(148,163,184,.25); border-radius: 12px; padding: 12px; display: grid; gap: 6px; }
-    .content-title { font-size: 12px; text-transform: uppercase; color: var(--muted); letter-spacing: 0.12em; }
-    .content-de, .content-en { margin: 0; font-size: clamp(16px, 4.5vw, 18px); line-height: 1.35; word-break: break-word; overflow-wrap: anywhere; white-space: pre-wrap; }
-    .content-en { display: none; color: #d1fae5; }
-
-    .show-translation .topic-en, .show-translation .content-en { display: block; }
-    .show-translation .toggle::after { content: " (on)"; font-weight: 500; }
-
-    .toast {
-      position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%) translateY(20px);
-      background: #111827; color: #e5e7eb; border: 1px solid #334155; border-radius: 10px;
-      padding: 10px 14px; box-shadow: var(--shadow); font-size: 14px; opacity: 0; pointer-events: none;
-      transition: opacity .2s ease, transform .2s ease;
+    /* Card */
+    .card{
+      background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(0,0,0,.25));
+      border:1px solid rgba(148,163,184,.25); border-radius:16px; box-shadow:var(--shadow);
+      padding:14px; display:grid; gap:10px;
     }
-    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
+    .topic{display:grid; gap:6px;}
+    .topic-label{font-size:12px; text-transform:uppercase; color:var(--muted); letter-spacing:.12em;}
+    .topic-de{
+      font-size:clamp(20px,6.2vw,28px); line-height:1.15; font-weight:800;
+      word-break:break-word; overflow-wrap:anywhere; white-space:normal; margin:0;
+    }
+    .topic-en{font-size:14px; color:var(--muted); margin:0; display:none;}
+
+    .content{display:grid; gap:8px; margin-top:2px;}
+    .content-block{
+      background:var(--card); border:1px solid rgba(148,163,184,.25);
+      border-radius:12px; padding:12px; display:grid; gap:6px;
+    }
+    .content-title{font-size:12px; text-transform:uppercase; color:var(--muted); letter-spacing:.12em;}
+    .content-de,.content-en{
+      margin:0; font-size:clamp(16px,4.5vw,18px); line-height:1.35;
+      word-break:break-word; overflow-wrap:anywhere; white-space:pre-wrap;
+    }
+    .content-en{display:none; color:#d1fae5;}
+
+    .show-translation .topic-en, .show-translation .content-en{display:block;}
+    .show-translation .toggle::after{content:" (on)"; font-weight:500;}
+
+    /* Toast */
+    .toast{
+      position:fixed; bottom:16px; left:50%; transform:translateX(-50%) translateY(20px);
+      background:#111827; color:#e5e7eb; border:1px solid #334155; border-radius:10px;
+      padding:10px 14px; box-shadow:var(--shadow); font-size:14px; opacity:0; pointer-events:none;
+      transition:opacity .2s ease, transform .2s ease;
+    }
+    .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+    .sr-only{position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); border:0;}
   </style>
 </head>
 <body>
   <main class="app" id="app" hidden>
-    <!-- (Sin título) -->
-
     <div class="controls">
-      <button id="newBtn" class="primary wide">Draw random</button>
+      <!-- Topic selector -->
+      <label class="select-wrap wide">
+        <span class="label-sm">Topic filter</span>
+        <select id="topicSelect" aria-label="Filter by topic">
+          <option value="__all__">All topics</option>
+        </select>
+      </label>
+
+      <button id="newBtn" class="primary">Draw random</button>
       <button id="toggleTrBtn" class="toggle" aria-pressed="false">Show translation</button>
       <button id="copyBtn">Copy to clipboard</button>
+      <button id="resetBtn">Reset deck</button>
+      <div id="progress" class="progress">Card 0 / 0</div>
     </div>
 
     <section class="card" aria-live="polite">
@@ -109,15 +140,23 @@
     const topicEn = el('topicEn');
     const contentDe = el('contentDe');
     const contentEn = el('contentEn');
+
     const newBtn = el('newBtn');
     const toggleTrBtn = el('toggleTrBtn');
     const copyBtn = el('copyBtn');
+    const resetBtn = el('resetBtn');
+    const topicSelect = el('topicSelect');
+    const progressEl = el('progress');
     const toast = el('toast');
     const srStatus = el('srStatus');
 
     let DATA = [];
+    let FILTERED = [];
+    let remaining = [];
+    let currentIndex = 0; // 1-based when a card is shown
 
-    function parseTSV(text) {
+    /* ---------- Utils ---------- */
+    function parseTSV(text){
       return text
         .replace(/^\uFEFF/, '')
         .split(/\r?\n/)
@@ -126,65 +165,127 @@
         .map(line => {
           const cols = line.split('\t');
           while (cols.length < 4) cols.push('');
-          return { topic_de: cols[0] || '', topic_en: cols[1] || '', content_de: cols[2] || '', content_en: cols[3] || '' };
+          return { topic_de: cols[0]||'', topic_en: cols[1]||'', content_de: cols[2]||'', content_en: cols[3]||'' };
         });
     }
-
-    function randomItem(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
-    function showItem(item) {
+    function showItem(item){
       topicDe.textContent = item.topic_de || '—';
       topicEn.textContent = item.topic_en || '—';
       contentDe.textContent = item.content_de || '—';
       contentEn.textContent = item.content_en || '—';
     }
-    function setTranslationVisible(visible) {
+    function setTranslationVisible(visible){
       document.body.classList.toggle('show-translation', visible);
       toggleTrBtn.setAttribute('aria-pressed', String(visible));
       toggleTrBtn.textContent = visible ? 'Hide translation' : 'Show translation';
     }
-    function showToast(msg) {
+    function showToast(msg){
       toast.textContent = msg; srStatus.textContent = msg;
       toast.classList.add('show'); clearTimeout(showToast._t);
-      showToast._t = setTimeout(() => toast.classList.remove('show'), 1500);
+      showToast._t = setTimeout(()=>toast.classList.remove('show'), 1500);
+    }
+    function updateProgress(){
+      const total = FILTERED.length || 0;
+      const shown = currentIndex || 0;
+      progressEl.textContent = `Card ${shown} / ${total}`;
     }
 
-    async function loadData() {
-      const url = `data.tsv?v=${Date.now()}`; // evita caché del CDN
-      try {
-        const res = await fetch(url, { cache: 'no-store' });
-        if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
-        const txt = await res.text();
-        const rows = parseTSV(txt);
-        const looksLikeHeader = rows.length && /topic|tema|deutsch/i.test(rows[0].topic_de);
-        DATA = looksLikeHeader ? rows.slice(1) : rows;
+    /* ---------- Deck logic ---------- */
+    function buildTopics(){
+      const map = new Map(); // topic_de -> topic_en (first seen)
+      for(const r of DATA){
+        if(!map.has(r.topic_de)) map.set(r.topic_de, r.topic_en || '');
+      }
+      // Fill select
+      // Keep current value if possible
+      const prev = topicSelect.value;
+      topicSelect.innerHTML = '<option value="__all__">All topics</option>' +
+        Array.from(map.entries())
+          .map(([de,en])=>{
+            const label = en && en.trim() ? `${de} — ${en}` : de;
+            const esc = (s)=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+            return `<option value="${esc(de)}">${esc(label)}</option>`;
+          }).join('');
+      if([...topicSelect.options].some(o=>o.value===prev)) topicSelect.value = prev;
+    }
 
-        if (!DATA.length) throw new Error('No rows in data.tsv');
-        app.hidden = false;
-        showItem(randomItem(DATA));
-      } catch (err) {
-        console.error('Failed to load data.tsv:', err);
-        app.hidden = false;
-        showItem({ topic_de: 'Could not load data.tsv', topic_en: '', content_de: '', content_en: '' });
-        showToast('Could not load data.tsv');
+    function applyFilter(){
+      const val = topicSelect.value;
+      FILTERED = (val === '__all__') ? DATA.slice() : DATA.filter(r => (r.topic_de || '') === val);
+      resetDeck(false); // false = no toast
+      if(FILTERED.length){
+        drawNext(); // start by showing a card
+      }else{
+        currentIndex = 0;
+        showItem({topic_de:'No cards for this topic', topic_en:'', content_de:'', content_en:''});
+        updateProgress();
       }
     }
 
-    newBtn.addEventListener('click', () => { if (DATA.length) showItem(randomItem(DATA)); });
-    toggleTrBtn.addEventListener('click', () => {
+    function resetDeck(showMsg = true){
+      remaining = FILTERED.slice();
+      currentIndex = 0;
+      updateProgress();
+      if(showMsg) showToast('Deck reset');
+    }
+
+    function drawNext(){
+      if(!remaining.length){
+        showToast('Deck finished. Tap “Reset deck”.');
+        return;
+      }
+      const i = Math.floor(Math.random() * remaining.length);
+      const [item] = remaining.splice(i, 1);
+      currentIndex = (FILTERED.length - remaining.length); // 1..N
+      showItem(item);
+      updateProgress();
+    }
+
+    /* ---------- Events ---------- */
+    newBtn.addEventListener('click', drawNext);
+    resetBtn.addEventListener('click', ()=>{ resetDeck(); if(FILTERED.length) drawNext(); });
+    toggleTrBtn.addEventListener('click', ()=>{
       const pressed = toggleTrBtn.getAttribute('aria-pressed') === 'true';
       setTranslationVisible(!pressed);
     });
-    copyBtn.addEventListener('click', async () => {
+    copyBtn.addEventListener('click', async ()=>{
       const text = `${topicDe.textContent}\n\n${contentDe.textContent}`.trim();
-      try {
+      try{
         await navigator.clipboard.writeText(text);
         showToast('Copied to clipboard');
-      } catch {
+      }catch{
         const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta);
         ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
         showToast('Copied to clipboard');
       }
     });
+    topicSelect.addEventListener('change', applyFilter);
+
+    /* ---------- Boot ---------- */
+    async function loadData(){
+      const url = `data.tsv?v=${Date.now()}`; // evita caché
+      try{
+        const res = await fetch(url, { cache:'no-store' });
+        if(!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
+        const txt = await res.text();
+        let rows = parseTSV(txt);
+        const looksLikeHeader = rows.length && /topic|tema|deutsch|alemán/i.test(rows[0].topic_de);
+        DATA = looksLikeHeader ? rows.slice(1) : rows;
+
+        if(!DATA.length) throw new Error('No rows in data.tsv');
+
+        app.hidden = false;
+        buildTopics();
+        applyFilter(); // esto también dibuja la primera carta
+      }catch(err){
+        console.error('Failed to load data.tsv:', err);
+        app.hidden = false;
+        showItem({ topic_de:'Could not load data.tsv', topic_en:'', content_de:'', content_en:'' });
+        currentIndex = 0; FILTERED = []; remaining = [];
+        updateProgress();
+        showToast('Could not load data.tsv');
+      }
+    }
 
     setTranslationVisible(false);
     loadData();
